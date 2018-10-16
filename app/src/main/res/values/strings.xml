@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">VTN</string>
+
+
+    <string name="update_title">Đã cập nhật phiên bản mới</string>
+    <string name="update_description">Cập nhật chức năng mới , tu sửa được vài cái bug \n
+Tối ưu hóa trải nghiệm điều hành, nhanh chóng áp dụng bản cập nhật trung tâm ứng dụng</string>
+    <string name="update_button">Lập tức cập nhật</string>
+
+    <string name="company_description">Vay tiền nhanh</string>
+</resources>
