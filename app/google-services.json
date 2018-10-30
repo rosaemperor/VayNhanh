@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "683177022761",
+    "firebase_url": "https://vaynhanh-f17fb.firebaseio.com",
+    "project_id": "vaynhanh-f17fb",
+    "storage_bucket": "vaynhanh-f17fb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:683177022761:android:0d3d16fae0a509a0",
+        "android_client_info": {
+          "package_name": "com.vaynhanh.vaynhanh"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "683177022761-p7fbset4m8qpd6coj3vkl401vqdi8jhd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCVOwxPDw_sBExhDKw4qcjKKZKtNvhPFk"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

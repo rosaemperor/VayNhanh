@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity
 import android.view.WindowManager
 import club.rosaemperor.myeyesopen.http.HttpService
 import club.rosaemperor.myeyesopen.http.RetrofitUtil
+import com.google.android.gms.analytics.HitBuilders
 import com.vaynhanh.vaynhanh.app.VayNhanhApplication
 import java.util.ArrayList
 
@@ -74,6 +75,11 @@ abstract class BaseActivity : AppCompatActivity(){
                 requestPermissions(ps, PERMISSION_REQUEST_CODE)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        VayNhanhApplication.sTracker.send(HitBuilders.EventBuilder().setAction("action").setCategory("onstart").build())
     }
 
 }

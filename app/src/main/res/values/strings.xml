@@ -8,4 +8,7 @@ Tối ưu hóa trải nghiệm điều hành, nhanh chóng áp dụng bản cậ
     <string name="update_button">Lập tức cập nhật</string>
 
     <string name="company_description">Vay tiền nhanh</string>
+    <string name="net_error">Máy chủ bị mất
+Vui lòng kiểm tra các thiết lập mạng
+của bạn hoặc truy cập sau</string>
 </resources>

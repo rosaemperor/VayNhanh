@@ -43,6 +43,7 @@ class MainActivity : BaseActivity() {
     @SuppressLint("ResourceAsColor")
     override fun initViewModel() {
         viewModel = MainViewModel()
+        binding.llNetworkError.visibility = View.GONE
         binding.swipeLayout.setColorSchemeColors(android.R.color.holo_blue_bright, android.R.color.holo_green_light,
                 android.R.color.holo_orange_light, android.R.color.holo_red_light)
         binding.viewModel = viewModel
@@ -68,21 +69,21 @@ class MainActivity : BaseActivity() {
     //按键处理
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if(keyCode == KeyEvent.KEYCODE_BACK ){
-//           DialogUtils.showUpdateDia(this@MainActivity)
-//            if (ActivityCompat.checkSelfPermission(
-//                            this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-//
-//            }else{
-//                var list= ArrayList<String>()
-//                list.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-//                list.add(Manifest.permission.CAMERA)
-//                requestPermissions(list.toTypedArray(),client.CAMERA_REQUEST_CODE)
-////                checkPermissions(arrayListOf(android.Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.CAMERA))
-//
-//            }
-            return true
-        }
+//        if(keyCode == KeyEvent.KEYCODE_BACK ){
+////           DialogUtils.showUpdateDia(this@MainActivity)
+////            if (ActivityCompat.checkSelfPermission(
+////                            this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+////
+////            }else{
+////                var list= ArrayList<String>()
+////                list.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+////                list.add(Manifest.permission.CAMERA)
+////                requestPermissions(list.toTypedArray(),client.CAMERA_REQUEST_CODE)
+//////                checkPermissions(arrayListOf(android.Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.CAMERA))
+////
+////            }
+//            return true
+//        }
         return super.onKeyDown(keyCode, event)
     }
 

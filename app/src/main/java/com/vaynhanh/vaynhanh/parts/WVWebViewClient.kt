@@ -2,18 +2,23 @@ package com.vaynhanh.vaynhanh.parts
 
 import android.Manifest
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.databinding.DataBindingUtil
 import android.graphics.Bitmap
 import android.media.Image
+import android.net.Uri
 import android.os.Build
 import android.support.annotation.RequiresApi
 import android.support.v4.app.ActivityCompat
 import android.telephony.TelephonyManager
 import android.util.Base64
 import android.util.Log
+import android.view.View
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import club.rosaemperor.myeyesopen.http.HttpService
 import club.rosaemperor.myeyesopen.http.RetrofitUtil
@@ -29,6 +34,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.ByteArrayOutputStream
+import java.net.URISyntaxException
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -92,10 +98,13 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
                     Log.e("error", e.message)
                 }
             }
-
-
-
-
+        })
+        registerHandler("postCanScroll",object : WVJBHandler{
+            override fun request(data: Any?, callback: WVJBResponseCallback?) {
+                val s = data as Boolean
+                var binding= DataBindingUtil.findBinding<ActivityMainBinding>(webView)
+                binding!!.swipeLayout.isEnabled = s
+            }
         })
         registerHandler("postImg",object : WVJBHandler{
             @RequiresApi(Build.VERSION_CODES.M)
@@ -271,5 +280,95 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
             })
         })
         thread!!.start()
+    }
+
+    override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+        if (url.startsWith(WebView.SCHEME_TEL) || url.startsWith("sms:") || url.startsWith(WebView.SCHEME_MAILTO)) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.data = Uri.parse(url)
+                webView.context.startActivity(intent)
+            } catch (ignored: ActivityNotFoundException) {
+            }
+
+            return true
+        } else if (url.startsWith("intent://")) {
+            val intent: Intent
+            try {
+                intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                intent.addCategory("android.intent.category.BROWSABLE")
+                intent.component = null
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
+                    intent.selector = null
+                }
+                val resolves = webView.context.packageManager.queryIntentActivities(intent, 0)
+                if (resolves.size > 0) {
+                    webView.context.startActivity(intent)
+                }
+                return true
+            } catch (e: URISyntaxException) {
+                e.printStackTrace()
+            }
+
+        }
+        return super.shouldOverrideUrlLoading(view, url)
+    }
+
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        var url = view!!.url
+        if (url.startsWith(WebView.SCHEME_TEL) || url.startsWith("sms:") || url.startsWith(WebView.SCHEME_MAILTO)) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.data = Uri.parse(url)
+                webView.context.startActivity(intent)
+            } catch (ignored: ActivityNotFoundException) {
+            }
+
+            return true
+        } else if (url.startsWith("intent://")) {
+            val intent: Intent
+            try {
+                intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                intent.addCategory("android.intent.category.BROWSABLE")
+                intent.component = null
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
+                    intent.selector = null
+                }
+                val resolves = webView.context.packageManager.queryIntentActivities(intent, 0)
+                if (resolves.size > 0) {
+                    webView.context.startActivity(intent)
+                }
+                return true
+            } catch (e: URISyntaxException) {
+                e.printStackTrace()
+            }
+
+        }
+        return super.shouldOverrideUrlLoading(view, request)
+    }
+
+    override fun onReceivedError(view: WebView, errorCode: Int, description: String, failingUrl: String) {
+        networkError(webView)
+    }
+
+    override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (request.url.toString() == webView.url)
+                networkError(view)
+        } else {
+            networkError(view)
+        }
+    }
+
+    private fun networkError(view: WebView) {
+        view.visibility = View.INVISIBLE
+        var binding = DataBindingUtil.findBinding<ActivityMainBinding>(view)
+        binding!!.viewModel!!.webViewVisiable.set(View.VISIBLE)
+        binding!!.viewModel!!.errorViewVisiable.set(View.VISIBLE)
+        if (SplashScreen.b) {
+            SplashScreen.b = false
+            SplashScreen.hide(webView.context as Activity)
+        }
+
     }
 }
