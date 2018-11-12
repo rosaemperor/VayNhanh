@@ -27,13 +27,16 @@ import com.vaynhanh.vaynhanh.utils.DialogUtils
 import com.vaynhanh.vaynhanh.utils.SplashScreen
 import com.vaynhanh.vaynhanh.viewModels.MainViewModel
 import kotlinx.android.synthetic.main.activity_main.view.*
-import java.util.ArrayList
+import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : BaseActivity() {
    lateinit var binding: ActivityMainBinding
     lateinit var client: WVWebViewClient
     lateinit var viewModel : MainViewModel
-
+     var mCurrentPhotoPath: String? = null
     var dontGrantedPermissions: MutableList<String> = ArrayList()
     override fun initBinding() {
         SplashScreen.show(this@MainActivity)
@@ -53,7 +56,9 @@ class MainActivity : BaseActivity() {
         client = WVWebViewClient(binding.webView)
         binding.webView.webViewClient = client
         var link : Uri = Uri.parse(config.BASE_SERVER_WEBUI_URL)
+
         binding.webView.loadUrl(link.toString())
+        viewModel.getUpdateMessage(this@MainActivity)
     }
 
 
@@ -70,18 +75,7 @@ class MainActivity : BaseActivity() {
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
 //        if(keyCode == KeyEvent.KEYCODE_BACK ){
-////           DialogUtils.showUpdateDia(this@MainActivity)
-////            if (ActivityCompat.checkSelfPermission(
-////                            this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-////
-////            }else{
-////                var list= ArrayList<String>()
-////                list.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-////                list.add(Manifest.permission.CAMERA)
-////                requestPermissions(list.toTypedArray(),client.CAMERA_REQUEST_CODE)
-//////                checkPermissions(arrayListOf(android.Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.CAMERA))
-////
-////            }
+//            client.takePhoto2()
 //            return true
 //        }
         return super.onKeyDown(keyCode, event)
@@ -92,10 +86,13 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (data ==null || resultCode != RESULT_OK) return
-        if (requestCode == client.ACTIVITYFOROMCLIENT){
+        if (resultCode == RESULT_CANCELED) client.onActivityResult(data)
+        if (requestCode == client.ACTIVITYFOROMCLIENT && resultCode == RESULT_OK){
             client.onActivityResult(data)
         }
+//        if (data ==null || resultCode != RESULT_OK) return
+
+
     }
 
     /**
@@ -103,13 +100,36 @@ class MainActivity : BaseActivity() {
      */
     @RequiresApi(api = Build.VERSION_CODES.M)
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        if (grantResults.isEmpty()) return
         when(requestCode){
             client.CAMERA_REQUEST_CODE -> client.onRequestPermissionsResult(requestCode,permissions,grantResults)
             client.DATA_PERMISSIONS -> client.onRequestPermissionsResult(requestCode,permissions,grantResults)
+            client.READ_PHONE_CODE -> client.onRequestPermissionsResult(requestCode,permissions,grantResults)
         }
 
 
     }
 
+    @Throws(IOException::class)
+    private fun createImageFile(): File {
+        // Create an image file name
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        val imageFileName = "JPEG_" + timeStamp + "_"
+        val storageDir = filesDir
+        val image = File.createTempFile(
+                imageFileName, /* prefix */
+                ".jpg", /* suffix */
+                storageDir      /* directory */
+        )
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.absolutePath
+        return image
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        Log.d("TAG","SSSintent")
+        super.onNewIntent(intent)
+    }
 
 }

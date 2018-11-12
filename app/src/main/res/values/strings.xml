@@ -11,4 +11,5 @@ Tối ưu hóa trải nghiệm điều hành, nhanh chóng áp dụng bản cậ
     <string name="net_error">Máy chủ bị mất
 Vui lòng kiểm tra các thiết lập mạng
 của bạn hoặc truy cập sau</string>
+    <string name="double_click_to_quit">Nhấn lần nữa để thoát VTN</string>
 </resources>

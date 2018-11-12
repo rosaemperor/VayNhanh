@@ -10,9 +10,9 @@
 </data>
 
 <android.support.constraint.ConstraintLayout
-
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#ffffff"
     tools:context=".MainActivity">
 
 <android.support.v4.widget.SwipeRefreshLayout
@@ -27,6 +27,7 @@
 </android.support.v4.widget.SwipeRefreshLayout>
     <android.support.constraint.ConstraintLayout
         android:id="@+id/ll_network_error"
+        android:background="#ffffff"
         android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -54,6 +55,7 @@
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             android:text="Tải lại"
+            android:onClick="@{(view)->viewModel.reload(view)}"
             android:id="@+id/reload_button"
             android:paddingTop="10dp"
             android:layout_marginTop="54dp"

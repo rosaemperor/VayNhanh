@@ -4,8 +4,10 @@ import android.util.Log
 import com.vaynhanh.vaynhanh.commons.config
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import okhttp3.Response
+import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -28,7 +30,6 @@ class RetrofitUtil private constructor() {
             override fun intercept(chain: Interceptor.Chain?): Response {
                 val response = chain!!.proceed(chain.request())
                 Log.d("TAG", "" + response.body()!!.string())
-                val responseBody = response.body()
 
                 val request = chain.request().newBuilder()
                         .addHeader("Content-Type", "text/html; charset=UTF-8")

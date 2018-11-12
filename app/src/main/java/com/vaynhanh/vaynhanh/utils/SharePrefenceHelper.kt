@@ -21,11 +21,15 @@ class SharePrefenceHelper {
             editor.commit()
         }
 
-        fun get(key : String) : String{
+        fun get(key : String) : String?{
             if (mContext == null) mContext=VayNhanhApplication.instance.applicationContext
             if (preferences == null) mContext!!.getSharedPreferences(mContext!!.packageName, Context.MODE_PRIVATE)
+            try {
+                return preferences!!.getString(key,"")
+            }catch (kot: KotlinNullPointerException){
+                return ""
+            }
 
-            return preferences!!.getString(key,"")
         }
     }
 
