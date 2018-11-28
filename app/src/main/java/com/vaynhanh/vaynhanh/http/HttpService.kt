@@ -1,9 +1,6 @@
 package club.rosaemperor.myeyesopen.http
 
-import com.vaynhanh.vaynhanh.http.beans.ImageJson
-import com.vaynhanh.vaynhanh.http.beans.UpdateEntity
-import com.vaynhanh.vaynhanh.http.beans.UpdateResultEntity
-import com.vaynhanh.vaynhanh.http.beans.UserMessages
+import com.vaynhanh.vaynhanh.http.beans.*
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -17,4 +14,7 @@ interface HttpService {
 
     @POST("app/upgrade")
     fun checkUpdate(@Body any: UpdateEntity) : Call<UpdateResultEntity>
+
+    @POST("customerCwral/judge")
+    fun judge() : Call<JudgeEntity>
 }

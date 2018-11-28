@@ -2,11 +2,9 @@ package club.rosaemperor.myeyesopen.http
 
 import android.util.Log
 import com.vaynhanh.vaynhanh.commons.config
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
-import okhttp3.RequestBody
+import com.vaynhanh.vaynhanh.utils.SharePrefenceHelper
+import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
-import okhttp3.Response
 import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -28,14 +26,33 @@ class RetrofitUtil private constructor() {
         loggingInterceptor!!.level = HttpLoggingInterceptor.Level.BODY
         client = OkHttpClient.Builder().addInterceptor(object : Interceptor {
             override fun intercept(chain: Interceptor.Chain?): Response {
-                val response = chain!!.proceed(chain.request())
-                Log.d("TAG", "" + response.body()!!.string())
 
-                val request = chain.request().newBuilder()
+//                Log.d("TAG", "" + response.body()!!.string())
+                var token = ""+SharePrefenceHelper.get("Token")
+                val request = chain!!.request().newBuilder()
                         .addHeader("Content-Type", "text/html; charset=UTF-8")
+                        .addHeader("access_token", token)
                         .build()
-                Log.d("TAG",""+request.body().toString())
-                return chain.proceed(request)            }
+                var response = chain!!.proceed(request)
+                var responseBody: ResponseBody? = null
+//                try {
+                val jsonObject = JSONObject(response.body()!!.string())
+                if(jsonObject.getInt("code") == 0 ){
+                    val data = jsonObject.get("data").toString() + ""
+                    val type = MediaType.parse("image/jpeg; charset=utf-8")
+                    Log.d("TAG", "data:$data")
+                    responseBody = ResponseBody.create(type, data)
+                }else{
+//                 Toast.makeText(QBXApplication.instance.applicationContext, jsonObject.getString("msg"),Toast.LENGTH_LONG).show()
+                }
+
+
+//                } catch (e: JSONException) {
+//                    e.printStackTrace()
+//                }
+
+                response = response.newBuilder().body(responseBody).build()
+                return response            }
         })
                 .addInterceptor(loggingInterceptor)
                 .retryOnConnectionFailure(true)

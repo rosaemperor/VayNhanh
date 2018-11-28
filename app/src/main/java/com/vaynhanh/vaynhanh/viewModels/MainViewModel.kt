@@ -51,7 +51,7 @@ class MainViewModel : BaseViewModel(){
             }
 
             override fun onResponse(call: Call<UpdateResultEntity>, response: Response<UpdateResultEntity>) {
-                if (response.body()!!.data != null){
+                if (response.body() != null){
                     DialogUtils.showUpdateDia(context)
                 }
 

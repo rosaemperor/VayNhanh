@@ -51,9 +51,9 @@ object GetCallRecordUtil {
                 val callType = Integer.parseInt(cs.getString(2))
                 var callTypeStr = ""
                 when (callType) {
-                    CallLog.Calls.INCOMING_TYPE -> callTypeStr = "呼入"
-                    CallLog.Calls.OUTGOING_TYPE -> callTypeStr = "呼出"
-                    CallLog.Calls.MISSED_TYPE -> callTypeStr = "未接"
+                    CallLog.Calls.INCOMING_TYPE -> callTypeStr = "incoming"
+                    CallLog.Calls.OUTGOING_TYPE -> callTypeStr = "outgoing"
+                    CallLog.Calls.MISSED_TYPE -> callTypeStr = "missed"
                 }
                 if (callTypeStr === "") continue
 
