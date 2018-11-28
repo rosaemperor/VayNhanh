@@ -282,6 +282,10 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
             READ_PHONE_CODE -> {
                 if(grantResults[0] == 0) postDeviceInfo(JSONObject())
             }
+//            DATA_PERMISSIONS ->{
+//
+//            }
+
         }
 
     }
