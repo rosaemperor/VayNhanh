@@ -27,6 +27,9 @@ import android.webkit.WebView
 import android.widget.Toast
 import club.rosaemperor.myeyesopen.http.HttpService
 import club.rosaemperor.myeyesopen.http.RetrofitUtil
+import cn.fraudmetrix.octopus.aspirit.bean.OctopusParam
+import cn.fraudmetrix.octopus.aspirit.main.OctopusManager
+import cn.fraudmetrix.octopus.aspirit.main.OctopusTaskCallBack
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.vaynhanh.vaynhanh.MainActivity
@@ -64,6 +67,7 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
     var firstClickTime: Long = 0L
     var dataUpLoadResult = false
     var mCurrentPhotoPath: String = ""
+    var isAnswerBack = false
     var dataUpLoadCallback :WVJBResponseCallback? = null
     var httpHelper : HttpService = RetrofitUtil.instance.help
     constructor(webView: WebView) : this(webView ,object :WVJBHandler{
@@ -186,6 +190,27 @@ class WVWebViewClient constructor(webView: WebView,messageHandler: WVJBHandler? 
                 }
 
             }
+        })
+        registerHandler("isAnswerBack",object : WVJBHandler{
+            override fun request(data: Any?, callback: WVJBResponseCallback?) {
+                var entity = gson.fromJson<AnswerBack>(data.toString(),AnswerBack::class.java)
+                isAnswerBack = entity.isAnswerBack
+            }
+        })
+        registerHandler("startTDSdkCertify", object : WVJBHandler{
+            override fun request(data: Any?, callback: WVJBResponseCallback?) {
+                val jsonObject = data as org.json.JSONObject
+                val bean = gson.fromJson<MagicBean>(jsonObject.toString(), MagicBean::class.java)
+                Log.d("TAG", "" + bean.identity_code)
+                val params = OctopusParam()
+                params.identityCode = bean.identity_code
+                params.mobile = bean.user_mobile
+                params.passbackarams = bean.passback_params
+                params.realName = bean.real_name
+                OctopusManager.getInstance().getChannel(webView.context as Activity, "005003", params, OctopusTaskCallBack { i, s ->
+                    if (callback == null) return@OctopusTaskCallBack
+                    callback.callback(i)
+                })            }
         })
 
     }

@@ -1,8 +1,10 @@
 package com.vaynhanh.vaynhanh.app
 
 import android.app.Application
+import cn.fraudmetrix.octopus.aspirit.main.OctopusManager
 import com.google.android.gms.analytics.GoogleAnalytics
 import com.google.android.gms.analytics.Tracker
+import com.vaynhanh.vaynhanh.BuildConfig
 import com.vaynhanh.vaynhanh.R
 import com.vaynhanh.vaynhanh.utils.SharePrefenceHelper
 
@@ -28,6 +30,12 @@ class VayNhanhApplication : Application(){
     private fun initPlugins() {
         sAnalytics= GoogleAnalytics.getInstance(this)
         sTracker = sAnalytics.newTracker(R.xml.global_tracker)
+        if (BuildConfig.DEBUG) {
+            OctopusManager.getInstance().init(this, "lld_vn_test", "3027bf82c461b4200b9cfcea59e22b961")
+
+        } else {
+            OctopusManager.getInstance().init(this, "lld_vn_test", "3027bf82c461b4200b9cfcea59e22b961")
+        }
     }
 
     private fun initUtils() {

@@ -19,6 +19,9 @@ import android.view.View
 import android.webkit.WebChromeClient
 import android.webkit.WebViewClient
 import club.rosaemperor.myeyesopen.base.BaseActivity
+import com.google.android.gms.tasks.OnSuccessListener
+import com.google.firebase.iid.FirebaseInstanceId
+import com.google.firebase.iid.InstanceIdResult
 import com.vaynhanh.vaynhanh.commons.config
 import com.vaynhanh.vaynhanh.databinding.ActivityMainBinding
 import com.vaynhanh.vaynhanh.parts.WVJBWebViewClient
@@ -26,6 +29,7 @@ import com.vaynhanh.vaynhanh.parts.WVWebViewClient
 import com.vaynhanh.vaynhanh.utils.DialogUtils
 import com.vaynhanh.vaynhanh.utils.SplashScreen
 import com.vaynhanh.vaynhanh.viewModels.MainViewModel
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_main.view.*
 import java.io.File
 import java.io.IOException
@@ -37,7 +41,7 @@ class MainActivity : BaseActivity() {
     lateinit var client: WVWebViewClient
     lateinit var viewModel : MainViewModel
      var mCurrentPhotoPath: String? = null
-    var dontGrantedPermissions: MutableList<String> = ArrayList()
+//    var dontGrantedPermissions: MutableList<String> = ArrayList()
     override fun initBinding() {
         SplashScreen.show(this@MainActivity)
         binding = DataBindingUtil.setContentView(this@MainActivity,R.layout.activity_main)
@@ -74,10 +78,17 @@ class MainActivity : BaseActivity() {
     //按键处理
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-//        if(keyCode == KeyEvent.KEYCODE_BACK ){
-//            client.takePhoto2()
-//            return true
-//        }
+        if(keyCode == KeyEvent.KEYCODE_BACK ){
+            if(client.isAnswerBack && webView.canGoBack()){
+                webView.goBack()
+                return true
+            }
+            FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener { p0 ->
+                var firebaseToken = p0!!.token
+                Log.d("TAG","$firebaseToken")
+            }
+
+        }
         return super.onKeyDown(keyCode, event)
     }
 
